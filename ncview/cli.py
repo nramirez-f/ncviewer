@@ -18,6 +18,9 @@ def build_parser():
     p_info = sub.add_parser("info", help="Display NetCDF file information")
     p_info.add_argument("file", help="Path to NetCDF file")
 
+    p_dimensions = sub.add_parser("dimensions", help="Display dimensions and their sizes")
+    p_dimensions.add_argument("file", help="Path to NetCDF file")
+
     p_variables = sub.add_parser("variables", help="List variables with descriptions")
     p_variables.add_argument("file", help="Path to NetCDF file")
 
@@ -38,11 +41,13 @@ def main(argv=None):
         return 1
 
     try:
-        if args.cmd in ("info", "variables", "summary"):
+        if args.cmd in ("info", "dimensions", "variables", "summary"):
             from . import _inspect
             
             if args.cmd == "info":
                 _inspect.print_info(args.file)
+            elif args.cmd == "dimensions":
+                _inspect.dimensions(args.file)
             elif args.cmd == "variables":
                 _inspect.list_variables(args.file)
             elif args.cmd == "summary":

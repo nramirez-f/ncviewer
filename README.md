@@ -8,6 +8,7 @@ The CLI is invoked with `ncv` (git-style subcommands):
 
 **Data Inspection (fast - only loads xarray):**
 - `ncv info <file>`: display complete NetCDF dataset information
+- `ncv dimensions <file>`: display dimensions and their sizes
 - `ncv variables <file>`: list variables with descriptions and metadata
 - `ncv summary <file> [variable|expression]`: show statistical summary (min/max/mean/std)
   - Examples: 

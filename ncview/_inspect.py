@@ -24,6 +24,69 @@ def print_info(path):
     print("=" * 80)
 
 
+def dimensions(path):
+    """Display dimensions of the NetCDF dataset.
+    
+    Shows dimension names, sizes, data types, memory usage, and value ranges.
+    
+    Args:
+        path: Path to NetCDF file
+    """
+    ds = open_dataset(path)
+    
+    print(f"\nDimensions in {Path(path).name}")
+    print("=" * 80)
+    
+    if not ds.sizes:
+        print("No dimensions found in this NetCDF file.")
+        return
+    
+    for dim_name, dim_size in ds.sizes.items():
+        # Check if dimension is unlimited
+        unlimited = ""
+        if hasattr(ds, 'encoding') and 'unlimited_dims' in ds.encoding:
+            if dim_name in ds.encoding['unlimited_dims']:
+                unlimited = " (UNLIMITED)"
+        
+        print(f"\n{dim_name}:")
+        print(f"  Size: {dim_size}{unlimited}")
+        
+        # Check if this dimension has coordinate values
+        if dim_name in ds.coords:
+            coord = ds[dim_name]
+            dtype = str(coord.dtype)
+            print(f"  Type: {dtype}")
+            
+            # Calculate memory size
+            itemsize = coord.dtype.itemsize
+            total_bytes = dim_size * itemsize
+            
+            # Format size in human-readable format
+            if total_bytes < 1024:
+                size_str = f"{total_bytes} B"
+            elif total_bytes < 1024**2:
+                size_str = f"{total_bytes/1024:.2f} KB"
+            elif total_bytes < 1024**3:
+                size_str = f"{total_bytes/1024**2:.2f} MB"
+            else:
+                size_str = f"{total_bytes/1024**3:.2f} GB"
+            
+            print(f"  Memory: {size_str}")
+            
+            # Try to compute min/max (skip if non-numeric)
+            try:
+                min_val = float(coord.min().values)
+                max_val = float(coord.max().values)
+                print(f"  Range: [{min_val:.4f}, {max_val:.4f}]")
+            except (TypeError, ValueError):
+                print(f"  Range: (Non-numeric)")
+        else:
+            print(f"  (No coordinate variable)")
+    
+    print("\n" + "=" * 80)
+    print(f"Total: {len(ds.sizes)} dimension(s)")
+
+
 def list_variables(path):
     """List all variables with key metadata and descriptions.
     
