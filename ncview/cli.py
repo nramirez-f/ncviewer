@@ -36,6 +36,10 @@ def build_parser():
     p_plot1d.add_argument("-o", "--output", help="Output file path (PNG, PDF, etc.)")
     p_plot1d.add_argument("--hvplot", action="store_true", help="Use hvplot instead of matplotlib")
 
+    # Code checking commands
+    p_check_order = sub.add_parser("check_order", help="Check code order from NetCDF input files")
+    p_check_order.add_argument("inputs", nargs="+", help="Path(s) to input NetCDF file(s)")
+
     return parser
 
 
@@ -71,6 +75,11 @@ def main(argv=None):
                 args.output,
                 args.hvplot
             )
+        
+        elif args.cmd == "check_order":
+            from . import _check_order
+            
+            _check_order.check_order(args.inputs)
                 
         else:
             parser.print_help()
