@@ -24,15 +24,16 @@ def compute_err(u_refp, u, x, norm):
     else:
         raise ValueError(f"Norma desconocida: {norm}")
 
-def check_order(input_files):
-    """Check code order from NetCDF input files.
+def check_order(samples, variables):
+    """Check code order from NetCDF sample files.
     
     Args:
-        input_files: List of paths to NetCDF input files (relative to execution directory)
+        samples: List of paths to sample NetCDF files (last one is used as reference)
+        variables: List of variable names to check (required)
     """
     # Convert to Path objects and verify they exist
     file_paths = []
-    for f in input_files:
+    for f in samples:
         p = Path(f)
         if not p.exists():
             print(f"✗ Warning: File not found: {f}", file=sys.stderr)
@@ -40,15 +41,21 @@ def check_order(input_files):
             file_paths.append(p)
     
     if not file_paths:
-        print("✗ Error: No valid input files found", file=sys.stderr)
+        print("✗ Error: No valid sample files found", file=sys.stderr)
         return
     
+    if len(file_paths) < 2:
+        print("✗ Error: At least 2 sample files are required (coarse + reference)", file=sys.stderr)
+        return
+    
+    vars_ = variables
+    
     print("=== Scheme Order ===")
-    print(f"Checking scheme order from {len(file_paths)} input file(s):")
-    for p in file_paths:
-        print(f"  - {p}")
-
-    vars_ = ['h', 'q']
+    print(f"Checking scheme order from {len(file_paths)} sample file(s):")
+    for i, p in enumerate(file_paths):
+        marker = " (reference)" if i == len(file_paths) - 1 else ""
+        print(f"  - {p}{marker}")
+    print(f"Variables to check: {', '.join(vars_)}")
 
     # Norma: 'L1', 'L2' o 'Linf'
     NORM = 'L1'
@@ -109,18 +116,25 @@ def check_order(input_files):
             p_val = math.log(errs[v][i-1] / errs[v][i]) / math.log(h_ratio)
             ps[v][i] = f"{p_val:.3f}"
 
-    # Imprimir tabla conjunta
+    # Calculate dynamic column widths based on variable names
+    error_width = max(13, max(len(f"Error({v})") for v in vars_) + 2)
+    order_width = max(8, max(len(f"Order({v})") for v in vars_) + 2)
+    
+    # Build header with dynamic widths
     header = f"{'ncx':>8}"
     for v in vars_:
-        header += f" | {'Error(' + v + ')':>13} | {'Order(' + v + ')':>8}"
+        error_label = f"Error({v})"
+        order_label = f"Order({v})"
+        header += f" | {error_label:>{error_width}} | {order_label:>{order_width}}"
     
-    print(f"\nError table using {NORM} norm: \n")
+    print(f"\nError table using {NORM} norm:\n")
     print(header)
     print("-" * len(header))
     
-    # Print data rows
+    # Print data rows with dynamic widths
     for i, npx in enumerate(npx_list):
         row = f"{npx:8d}"
         for v in vars_:
-            row += f" | {errs[v][i]:13.6e} | {ps[v][i]:>8}"
+            row += f" | {errs[v][i]:{error_width}.6e} | {ps[v][i]:>{order_width}}"
         print(row)
+

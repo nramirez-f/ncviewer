@@ -38,7 +38,8 @@ def build_parser():
 
     # Code checking commands
     p_check_order = sub.add_parser("check_order", help="Check code order from NetCDF input files")
-    p_check_order.add_argument("inputs", nargs="+", help="Path(s) to input NetCDF file(s)")
+    p_check_order.add_argument("-samples", nargs="+", required=True, help="Path(s) to sample NetCDF file(s) (last one is used as reference)")
+    p_check_order.add_argument("-vars", nargs="+", required=True, help="Variable name(s) to check")
 
     return parser
 
@@ -79,7 +80,7 @@ def main(argv=None):
         elif args.cmd == "check_order":
             from . import _check_order
             
-            _check_order.check_order(args.inputs)
+            _check_order.check_order(args.samples, args.vars)
                 
         else:
             parser.print_help()
