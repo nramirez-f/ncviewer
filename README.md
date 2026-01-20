@@ -70,7 +70,7 @@ ncv info myfile.nc
 deactivate
 
 # 8. (Optional) Add path in bashrc to invoke in any folder
-export PATH='/path/to/ncviewer/.venv/bin:$PATH'
+export PATH="/path/to/ncviewer/.venv/bin:$PATH"
 ```
 ### 🚀 For USAGE (end-user)
 
