@@ -168,7 +168,7 @@ def main(argv=None):
         return 0
 
     if args.cmd == "commands":
-        print("Available commands (alphabetical order):\n")
+        print("Available commands:\n")
         for cmd in sorted(COMMANDS.keys()):
             desc = COMMANDS[cmd]["description"]
             print(f"  {cmd:<12} - {desc}")

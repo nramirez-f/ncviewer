@@ -16,12 +16,12 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "ncviewer = ncviewer.cli:main",
-            "ncinfo = ncviewer.cli:ncinfo",
-            "ncdim = ncviewer.cli:ncdim",
-            "ncvar = ncviewer.cli:ncvar",
-            "ncsum = ncviewer.cli:ncsum",
-            "ncp1d = ncviewer.cli:ncp1d",
+            "ncviewer = api.cli:main",
+            "ncinfo = api.cli:ncinfo",
+            "ncdim = api.cli:ncdim",
+            "ncvar = api.cli:ncvar",
+            "ncsum = api.cli:ncsum",
+            "ncp1d = api.cli:ncp1d",
         ],
     },
     include_package_data=True,
