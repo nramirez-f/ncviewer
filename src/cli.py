@@ -80,6 +80,17 @@ COMMANDS = {
             (["--no-colorbar"], {"action": "store_true", "help": "Don't show colorbar"}),
         ],
     },
+    "ncplot2d": {
+        "description": "Launch interactive 2D plotting server",
+        "args": [
+            ("file", {"help": "Path to NetCDF file"}),
+        ],
+        "optional_args": [
+            (["--time-dim"], {"default": "time", "help": "Name of time dimension (default: time)"}),
+            (["--x-dim"], {"default": "x", "help": "Name of X spatial dimension (default: x)"}),
+            (["--y-dim"], {"default": "y", "help": "Name of Y spatial dimension (default: y)"}),
+        ],
+    },
 }
 
 def _create_parser(prog, config):
@@ -234,6 +245,28 @@ def ncmov2d():
             custom_title=args.title,
             show_time=not args.no_time,
             show_colorbar=not args.no_colorbar,
+        )
+        return 0
+    except FileNotFoundError as e:
+        print(f"✗ Error: {e}", file=sys.stderr)
+        return 2
+    except Exception as e:
+        print(f"✗ Unexpected error: {e}", file=sys.stderr)
+        return 1
+
+
+def ncplot2d():
+    """Entry point for ncplot2d command - Launch interactive 2D plotting server"""
+    parser = _create_parser("ncplot2d", COMMANDS["ncplot2d"])
+    args = parser.parse_args()
+    
+    try:
+        from .plot2d import launch_server
+        launch_server(
+            input_file=args.file,
+            time_dim=args.time_dim,
+            x_dim=args.x_dim,
+            y_dim=args.y_dim
         )
         return 0
     except FileNotFoundError as e:
