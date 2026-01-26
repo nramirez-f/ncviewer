@@ -29,8 +29,8 @@ COMMANDS = {
             ("var", {"nargs": "?", "help": "Variable name (optional, shows all if omitted)"}),
         ],
     },
-    "ncp1d": {
-        "description": "Generate 1D plot at specific time",
+    "ncsnap1d": {
+        "description": "Generate 1D snapshot at specific time",
         "args": [
             ("file", {"help": "Path to NetCDF file"}),
             ("vars", {"nargs": "+", "help": "Variable name(s) or expression(s) to plot"}),
@@ -39,13 +39,6 @@ COMMANDS = {
             (["-t", "--time"], {"required": True, "help": "Time index (integer) or datetime string"}),
             (["-o", "--output"], {"help": "Output file path (PNG, PDF, etc.)"}),
             (["--hvplot"], {"action": "store_true", "help": "Use hvplot instead of matplotlib"}),
-        ],
-    },
-    "ncplot1d": {
-        "description": "Launch Panel web server for interactive 1D plotting",
-        "args": [],
-        "optional_args": [
-            (["-p", "--port"], {"type": int, "default": 2700, "help": "Port for Panel server (default: 2700)"}),
         ],
     },
     "ncerr": {
@@ -190,31 +183,18 @@ def ncsum():
         return 1
 
 
-def ncp1d():
-    """Entry point for ncp1d command"""
-    parser = _create_parser("ncp1d", COMMANDS["ncp1d"])
+def ncsnap1d():
+    """Entry point for ncsnap1d command"""
+    parser = _create_parser("ncsnap1d", COMMANDS["ncsnap1d"])
     args = parser.parse_args()
     
     try:
-        from . import _plot1d
+        from . import _p1d
         _p1d.plot1d(args.file, args.vars, args.time, args.output, args.hvplot)
         return 0
     except FileNotFoundError as e:
         print(f"✗ Error: {e}", file=sys.stderr)
         return 2
-    except Exception as e:
-        print(f"✗ Unexpected error: {e}", file=sys.stderr)
-        return 1
-
-
-def ncplot1d():
-    """Entry point for ncplot1d command - Launch Panel web server"""
-    parser = _create_parser("ncplot1d", COMMANDS["ncplot1d"])
-    args = parser.parse_args()
-    
-    try:
-        from . import _plot1d
-        return _plot1d.launch_panel_server(args.port)
     except Exception as e:
         print(f"✗ Unexpected error: {e}", file=sys.stderr)
         return 1
