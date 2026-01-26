@@ -22,6 +22,7 @@ setup(
             "ncdim = src.cli:ncdim",
             "ncvar = src.cli:ncvar",
             "ncsum = src.cli:ncsum",
+            "ncerr = src.cli:ncerr",
             "ncp1d = src.cli:ncp1d",
             "ncplot1d = src.cli:ncplot1d",
         ],

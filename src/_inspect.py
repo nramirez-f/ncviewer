@@ -1,16 +1,18 @@
-"""Data inspection utilities for ncviewer.
+"""
+Data inspection utilities for ncviewer.
 
 This module handles read-only operations on NetCDF files.
 Only imports xarray/netCDF4 (lightweight, fast startup).
 """
 import sys
 from pathlib import Path
-from ._utils import open_dataset, validate_variable
-from ._math import evaluate_expression
-
+from ._utils import open_dataset, check_variable
+from ._math import evaluate_expression, compute_error
+import numpy as np
 
 def print_info(path):
-    """Display complete NetCDF dataset information.
+    """
+    Display complete NetCDF dataset information.
     
     Shows dimensions, coordinates, variables, attributes, and metadata.
     
@@ -22,10 +24,11 @@ def print_info(path):
     print("=" * 80)
     print(ds)
     print("=" * 80)
-
+    ds.close()
 
 def dimensions(path):
-    """Display dimensions of the NetCDF dataset.
+    """
+    Display dimensions of the NetCDF dataset.
     
     Shows dimension names, sizes, data types, memory usage, and value ranges.
     
@@ -39,6 +42,7 @@ def dimensions(path):
     
     if not ds.sizes:
         print("No dimensions found in this NetCDF file.")
+        ds.close()
         return
     
     for dim_name, dim_size in ds.sizes.items():
@@ -85,6 +89,7 @@ def dimensions(path):
     
     print("\n" + "=" * 80)
     print(f"Total: {len(ds.sizes)} dimension(s)")
+    ds.close()
 
 
 def list_variables(path):
@@ -103,6 +108,7 @@ def list_variables(path):
     
     if not ds.data_vars:
         print("No data variables found in this NetCDF file.")
+        ds.close()
         return
     
     for name in ds.data_vars:
@@ -123,6 +129,7 @@ def list_variables(path):
     print(f"Total: {len(ds.data_vars)} variable(s)")
     print(f"Tip:    Use 'ncv summary {Path(path).name}' for detailed statistics")
     print(f"        Use 'ncv summary {Path(path).name} <var_name>' for a specific variable")
+    ds.close()
 
 def summary(path, varname=None):
     """Display statistical summary of variable(s) or expressions.
@@ -149,7 +156,7 @@ def summary(path, varname=None):
                 return
         else:
             # Single variable
-            validate_variable(ds, varname)
+            check_variable(ds, varname)
             variables = [(varname, ds[varname])]
     else:
         # All variables
@@ -180,3 +187,185 @@ def summary(path, varname=None):
                 print(f"    {attr_name}: {attr_val}")
     
     print("=" * 80)
+    ds.close()
+
+def error(path1, path2, time_index=None, norm_error='2'):
+    """Error analysis between two NetCDF files.
+    
+    Args:
+        path1: Path to first NetCDF file
+        path2: Path to second NetCDF file
+        time_index: Optional specific time index to compare
+    """
+    
+    ds1 = open_dataset(path1)
+    ds2 = open_dataset(path2)
+    
+    print(f"\nErrors between {Path(path1).name} and {Path(path2).name}")
+    print("=" * 80)
+    
+    print("checking dimension names...")
+    dims1 = set(ds1.sizes.keys())
+    dims2 = set(ds2.sizes.keys())
+    
+    if dims1 != dims2:
+        print(f"✗ Dimension names differ:")
+        print(f"  Only in file1: {dims1 - dims2}")
+        print(f"  Only in file2: {dims2 - dims1}")
+        return
+    else:
+        print("✓ Dimension names match")
+    
+    print("checking dimension sizes...")
+    dims_match = True
+    for dim in dims1:
+        if ds1.sizes[dim] != ds2.sizes[dim]:
+            print(f"✗ Dimension '{dim}': size mismatch ({ds1.sizes[dim]} vs {ds2.sizes[dim]})")
+            dims_match = False
+    
+    if not dims_match:
+        print("\n✗ Cannot compare: dimension sizes do not match")
+        return
+    else:
+        print("✓ All dimensions match")
+
+    print("checking coordinate nodes...")
+    
+    for coord_name in ds1.coords:
+        if coord_name in ds2.coords:
+            coord1 = ds1[coord_name].values
+            coord2 = ds2[coord_name].values
+            if not np.allclose(coord1, coord2, rtol=1e-9, atol=1e-12):
+                max_diff = np.max(np.abs(coord1 - coord2))
+                print(f"✗ Coordinate '{coord_name}': values differ (max diff: {max_diff:.2e})")
+                return
+    
+    print("✓ All coordinate nodes match")
+    
+    print("finding variables to compare...")
+    vars1 = set(ds1.data_vars.keys())
+    vars2 = set(ds2.data_vars.keys())
+    common_vars = vars1 & vars2
+    
+    if vars1 != vars2:
+        print(f"Variables in both files: {len(common_vars)}")
+        if vars1 - vars2:
+            print(f"Only in file1: {vars1 - vars2}")
+        if vars2 - vars1:
+            print(f"Only in file2: {vars2 - vars1}")
+    else:
+        print(f"✓ {len(common_vars)} variables match")
+    
+    if not common_vars:
+        print("\n✗ No common variables to compare")
+        return
+    
+    print(f"computing errors for variables {sorted(common_vars)} in norm {norm_error}...")
+    print("\nError results:")
+    print("=" * 80)
+    
+    # Detect time dimension
+    time_dim = None
+    for dim in ['time', 't', 'Time', 'TIME']:
+        if dim in ds1.dims:
+            time_dim = dim
+            break
+    
+    # Identify spatial dimensions (x and y)
+    x_dim = None
+    y_dim = None
+    
+    for dim in ds1.dims:
+        if dim == time_dim:
+            continue
+        dim_lower = dim.lower()
+        if dim_lower in ['x', 'lon', 'longitude', 'xi']:
+            x_dim = dim
+        elif dim_lower in ['y', 'lat', 'latitude', 'eta']:
+            y_dim = dim
+    
+    # Calculate cell_volume based on grid type
+    if x_dim and not y_dim:
+        # 1D case: (t, x)
+        if x_dim in ds1.coords and len(ds1[x_dim].values) > 1:
+            dx = np.abs(ds1[x_dim].values[1] - ds1[x_dim].values[0])
+            cell_volume = dx
+            print(f"Grid type: 1D (uniform spacing dx={dx:.6e})")
+        else:
+            cell_volume = 1.0
+            print(f"Grid type: 1D (no spacing info, using cell_volume=1)")
+    elif x_dim and y_dim:
+        # 2D case: (t, y, x)
+        dx = 1.0
+        dy = 1.0
+        if x_dim in ds1.coords and len(ds1[x_dim].values) > 1:
+            dx = np.abs(ds1[x_dim].values[1] - ds1[x_dim].values[0])
+        if y_dim in ds1.coords and len(ds1[y_dim].values) > 1:
+            dy = np.abs(ds1[y_dim].values[1] - ds1[y_dim].values[0])
+        cell_volume = dx * dy
+        print(f"Grid type: 2D (uniform spacing dx={dx:.6e}, dy={dy:.6e})")
+    else:
+        # Fallback: no spatial dimensions detected
+        cell_volume = 1.0
+        print(f"Grid type: Unknown (using cell_volume=1)")
+    
+    for var_name in sorted(common_vars):
+        var1 = ds1[var_name]
+        var2 = ds2[var_name]
+        
+        # Check if shapes match
+        if var1.shape != var2.shape:
+            print(f"\n{var_name}: ✗ Shape mismatch ({var1.shape} vs {var2.shape})")
+            continue
+        
+        print(f"\n{var_name}:")
+        print(f"  Dimensions: {var1.dims}")
+        print(f"  Shape: {var1.shape}")
+        
+        # Check if variable has time dimension
+        has_time = time_dim and time_dim in var1.dims
+        
+        if has_time and time_index is None:
+            # Compare all time steps
+            time_size = var1.sizes[time_dim]
+            errors = []
+            
+            for t in range(time_size):
+                v1_t = var1.isel({time_dim: t}).values
+                v2_t = var2.isel({time_dim: t}).values
+                err = compute_error(v1_t, v2_t, cell_volume, norm=norm_error)
+                errors.append(err)
+            
+            errors = np.array(errors)
+            total_error = np.sum(errors)
+            mean_error = np.mean(errors)
+            max_idx = np.argmax(errors)
+            min_idx = np.argmin(errors)
+            
+            print(f"  Total error ({time_dim} summation) = {total_error:.6e}")
+            print(f"  Mean error = {mean_error:.6e}")
+            print(f"  Max error = {errors[max_idx]:.6e} at time={max_idx}")
+            print(f"  Min error = {errors[min_idx]:.6e} at time={min_idx}")
+            
+        elif has_time and time_index is not None:
+            if time_index >= var1.sizes[time_dim]:
+                print(f"  ✗ Time index {time_index} out of range (max: {var1.sizes[time_dim]-1})")
+                continue
+            
+            v1_t = var1.isel({time_dim: time_index}).values
+            v2_t = var2.isel({time_dim: time_index}).values
+            err = compute_error(v1_t, v2_t, cell_volume, norm=norm_error)
+            
+            print(f"  Error = {err:.6e} at {time_dim}={ds1[time_dim].values[time_index]:.3e}")
+            
+        else:
+            # No time dimension, compare directly
+            v1 = var1.values
+            v2 = var2.values
+            err = compute_error(v1, v2, cell_volume, norm=norm_error)
+            
+            print(f"  Error (L2 norm): {err:.6e}")
+    
+    print("\n" + "=" * 80)
+    ds1.close()
+    ds2.close()

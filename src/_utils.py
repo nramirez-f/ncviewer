@@ -27,7 +27,7 @@ def open_dataset(path):
     return xr.open_dataset(p)
 
 
-def validate_variable(ds, varname):
+def check_variable(ds, varname):
     """Check if variable exists in dataset.
     
     Args:

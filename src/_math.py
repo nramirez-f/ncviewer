@@ -1,6 +1,7 @@
-"""Math Utilities for ncviewer
-
 """
+Math Utilities for ncviewer
+"""
+import numpy as np
 
 def evaluate_expression(ds, expression):
     """Evaluate a mathematical expression using dataset variables.
@@ -50,3 +51,26 @@ def evaluate_expression(ds, expression):
         raise KeyError(f"Variable not found in expression '{expression}': {e}")
     except Exception as e:
         raise SyntaxError(f"Invalid expression '{expression}': {e}")
+
+def compute_error(var_a, var_b, cell_volume, norm='2'):
+    """Compute error between two variables using specified norm.
+    
+    Args:
+        var_a: First variable (numpy array)
+        var_b: Second variable (numpy array)
+        cell_volume: Cell volume weights (numpy array)
+        norm: Norm type ('1', '2', 'inf')
+        
+    Returns:
+        Computed error (float)
+    """
+    diff = var_a - var_b
+    if norm == '1':
+        err = np.sum(np.abs(diff))*cell_volume
+    elif norm == '2':
+        err = np.sqrt(np.sum(diff**2)*cell_volume)
+    elif norm == 'inf':
+        err = np.max(np.abs(diff))
+    else:
+        raise ValueError(f"Unsupported norm type: {norm}")
+    return err
