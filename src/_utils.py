@@ -27,30 +27,45 @@ def open_dataset(path):
         raise FileNotFoundError(f"File not found: {path}")
     return xr.open_dataset(p)
 
-
-def check_variable(ds, varname):
+def count_spatial_dimensions(path):
     """
-    Check if variable exists in dataset.
-    
+    Check how many spatial (non-unlimited) dimensions a NetCDF file has.
+
     Args:
-        ds: xarray.Dataset
-        varname: Variable name to validate
-        
+        path: Path to NetCDF file (str or Path)
+
     Returns:
-        bool: True if variable exists, False otherwise
+        int: Number of spatial dimensions (1, 2, or 3)
     """
-    return varname in ds.data_vars
+    ds = open_dataset(path)
+    spatial_dims = [
+        dim for dim in ds.dims
+        if not ds.encoding.get('unlimited_dims', []) or dim not in ds.encoding['unlimited_dims']
+    ]
+    # If unlimited_dims is not set, fallback to _is_unlimited_dim attribute
+    if not ds.encoding.get('unlimited_dims', []):
+        spatial_dims = [
+            dim for dim in ds.dims
+            if not getattr(ds.dims[dim], '_is_unlimited_dim', False)
+        ]
+    return len(spatial_dims)
 
-
-def check_dimension(ds, dimname):
+def count_temporal_dimensions(path):
     """
-    Check if dimension exists in dataset.
-    
+    Check how many temporal (unlimited) dimensions a NetCDF file has.
+
     Args:
-        ds: xarray.Dataset
-        dimname: Dimension name to validate
-        
+        path: Path to NetCDF file (str or Path)
+
     Returns:
-        bool: True if dimension exists, False otherwise
+        int: Number of temporal (unlimited) dimensions
     """
-    return dimname in ds.dims
+    ds = open_dataset(path)
+    unlimited_dims = ds.encoding.get('unlimited_dims', [])
+    # If unlimited_dims is not set, fallback to _is_unlimited_dim attribute
+    if not unlimited_dims:
+        unlimited_dims = [
+            dim for dim in ds.dims
+            if getattr(ds.dims[dim], '_is_unlimited_dim', False)
+        ]
+    return len(unlimited_dims)

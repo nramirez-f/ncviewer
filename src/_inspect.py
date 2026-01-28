@@ -4,11 +4,15 @@ Data inspection utilities for ncviewer.
 This module handles read-only operations on NetCDF files.
 Only imports xarray/netCDF4 (lightweight, fast startup).
 """
+
 import sys
 from pathlib import Path
-from ._utils import open_dataset, check_variable
+from ._utils import open_dataset
 from ._math import evaluate_expression, compute_error
 import numpy as np
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import *
 
 def print_info(path):
     """
@@ -35,36 +39,56 @@ def dimensions(path):
     Args:
         path: Path to NetCDF file
     """
+    from ._utils import count_spatial_dimensions, count_temporal_dimensions
     ds = open_dataset(path)
-    
+
     print(f"\nDimensions in {Path(path).name}")
-    print("=" * 80)
-    
+    print(SEPARATOR_CHAR * SEPARATOR_LENGTH)
+
     if not ds.sizes:
         print("No dimensions found in this NetCDF file.")
         ds.close()
         return
-    
+
+    # Identificar dimensiones espaciales y temporales
+    spatial_count = count_spatial_dimensions(path)
+    temporal_count = count_temporal_dimensions(path)
+
+    # Determinar nombres de dimensiones espaciales y temporales
+    unlimited_dims = ds.encoding.get('unlimited_dims', [])
+    if not unlimited_dims:
+        unlimited_dims = [
+            dim for dim in ds.dims
+            if getattr(ds.dims[dim], '_is_unlimited_dim', False)
+        ]
+    spatial_dims = [
+        dim for dim in ds.dims
+        if dim not in unlimited_dims
+    ]
+
+    print(f"Total: {len(ds.sizes)} dimension(s)")
+    print(f"Temporal dimensions ({temporal_count}): {unlimited_dims}")
+    print(f"Spatial dimensions ({spatial_count}): {spatial_dims}")
+
     for dim_name, dim_size in ds.sizes.items():
         # Check if dimension is unlimited
         unlimited = ""
-        if hasattr(ds, 'encoding') and 'unlimited_dims' in ds.encoding:
-            if dim_name in ds.encoding['unlimited_dims']:
-                unlimited = " (UNLIMITED)"
-        
+        if dim_name in unlimited_dims:
+            unlimited = " (UNLIMITED)"
+
         print(f"\n{dim_name}:")
         print(f"  Size: {dim_size}{unlimited}")
-        
+
         # Check if this dimension has coordinate values
         if dim_name in ds.coords:
             coord = ds[dim_name]
             dtype = str(coord.dtype)
             print(f"  Type: {dtype}")
-            
+
             # Calculate memory size
             itemsize = coord.dtype.itemsize
             total_bytes = dim_size * itemsize
-            
+
             # Format size in human-readable format
             if total_bytes < 1024:
                 size_str = f"{total_bytes} B"
@@ -74,9 +98,9 @@ def dimensions(path):
                 size_str = f"{total_bytes/1024**2:.2f} MB"
             else:
                 size_str = f"{total_bytes/1024**3:.2f} GB"
-            
+
             print(f"  Memory: {size_str}")
-            
+
             # Try to compute min/max (skip if non-numeric)
             try:
                 min_val = float(coord.min().values)
@@ -86,9 +110,9 @@ def dimensions(path):
                 print(f"  Range: (Non-numeric)")
         else:
             print(f"  (No coordinate variable)")
-    
-    print("\n" + "=" * 80)
-    print(f"Total: {len(ds.sizes)} dimension(s)")
+
+    print("\n" + SEPARATOR_CHAR * SEPARATOR_LENGTH)
+
     ds.close()
 
 
@@ -104,7 +128,7 @@ def list_variables(path):
     ds = open_dataset(path)
     
     print(f"Variables in {Path(path).name}")
-    print("=" * 80)
+    print(SEPARATOR_CHAR * SEPARATOR_LENGTH)
     
     if not ds.data_vars:
         print("No data variables found in this NetCDF file.")
@@ -125,7 +149,7 @@ def list_variables(path):
         for attr_name, attr_val in var.attrs.items():
                 print(f"    {attr_name}: {attr_val}")
     
-    print("=" * 80)
+    print(SEPARATOR_CHAR * SEPARATOR_LENGTH)
     print(f"Total: {len(ds.data_vars)} variable(s)")
     print(f"Tip:    Use 'ncv summary {Path(path).name}' for detailed statistics")
     print(f"        Use 'ncv summary {Path(path).name} <var_name>' for a specific variable")
@@ -144,7 +168,7 @@ def summary(path, varname=None):
     
     if varname:
         # Check if it's an expression (contains operators or functions)
-        is_expression = any(op in varname for op in ['+', '-', '*', '/', '**', '(', ')'])
+        is_expression = any(op in varname for op in EXPRESSION_OPERATORS)
         
         if is_expression:
             # Evaluate the expression
@@ -156,7 +180,7 @@ def summary(path, varname=None):
                 return
         else:
             # Single variable
-            if not check_variable(ds, varname):
+            if not varname in ds.data_vars:
                 available = ", ".join(list(ds.data_vars)[:5])
                 if len(ds.data_vars) > 5:
                     available += f", ... ({len(ds.data_vars)} total)"
@@ -175,18 +199,16 @@ def summary(path, varname=None):
         print(f"  Dimensions: {var.dims}")
         print(f"  Shape: {var.shape}")
         print(f"  Type: {var.dtype}")
-        
         # Try to compute statistics (skip if non-numeric)
         try:
-            print(f"  Min: {float(var.min().values):.4f}")
-            print(f"  Max: {float(var.max().values):.4f}")
-            print(f"  Mean: {float(var.mean().values):.4f}")
-            print(f"  Std: {float(var.std().values):.4f}")
+            print(f"  Min: {float(var.min().values):.{STAT_PRECISION}f}")
+            print(f"  Max: {float(var.max().values):.{STAT_PRECISION}f}")
+            print(f"  Mean: {float(var.mean().values):.{STAT_PRECISION}f}")
+            print(f"  Std: {float(var.std().values):.{STAT_PRECISION}f}")
         except (TypeError, ValueError):
             print("  (Non-numeric data, statistics not available)")
-        
         # Print attributes if any (only for single variables, not expressions)
-        if hasattr(var, 'attrs') and var.attrs and not any(op in var_name for op in ['+', '-', '*', '/', '**', '(', ')']):
+        if hasattr(var, 'attrs') and var.attrs and not any(op in var_name for op in EXPRESSION_OPERATORS):
             print("  Attributes:")
             for attr_name, attr_val in var.attrs.items():
                 print(f"    {attr_name}: {attr_val}")
@@ -207,7 +229,7 @@ def error(path1, path2, time_index=None, norm_error='2'):
     ds2 = open_dataset(path2)
     
     print(f"\nErrors between {Path(path1).name} and {Path(path2).name}")
-    print("=" * 80)
+    print(SEPARATOR_CHAR * SEPARATOR_LENGTH)
     
     print("checking dimension names...")
     dims1 = set(ds1.sizes.keys())
@@ -240,7 +262,7 @@ def error(path1, path2, time_index=None, norm_error='2'):
         if coord_name in ds2.coords:
             coord1 = ds1[coord_name].values
             coord2 = ds2[coord_name].values
-            if not np.allclose(coord1, coord2, rtol=1e-9, atol=1e-12):
+            if not np.allclose(coord1, coord2, rtol=COORDINATE_RTOL, atol=COORDINATE_ATOL):
                 max_diff = np.max(np.abs(coord1 - coord2))
                 print(f"✗ Coordinate '{coord_name}': values differ (max diff: {max_diff:.2e})")
                 return
@@ -271,22 +293,29 @@ def error(path1, path2, time_index=None, norm_error='2'):
     
     # Detect time dimension
     time_dim = None
-    for dim in ['time', 't', 'Time', 'TIME']:
-        if dim in ds1.dims:
-            time_dim = dim
-            break
+    # First try to find unlimited dimension
+    if hasattr(ds1, 'encoding') and 'unlimited_dims' in ds1.encoding:
+        unlimited_dims = list(ds1.encoding['unlimited_dims'])
+        if unlimited_dims:
+            time_dim = unlimited_dims[0]  # Use first unlimited dimension
     
+    # If no unlimited dimension found, fall back to common time dimension names
+    if time_dim is None:
+        for dim in TIME_DIMENSION_NAMES:
+            if dim in ds1.dims:
+                time_dim = dim
+                break
+
     # Identify spatial dimensions (x and y)
     x_dim = None
     y_dim = None
-    
     for dim in ds1.dims:
         if dim == time_dim:
             continue
         dim_lower = dim.lower()
-        if dim_lower in ['x', 'lon', 'longitude', 'xi']:
+        if dim_lower in X_DIMENSION_NAMES:
             x_dim = dim
-        elif dim_lower in ['y', 'lat', 'latitude', 'eta']:
+        elif dim_lower in Y_DIMENSION_NAMES:
             y_dim = dim
     
     # Calculate cell_volume based on grid type
@@ -297,8 +326,8 @@ def error(path1, path2, time_index=None, norm_error='2'):
             cell_volume = dx
             print(f"Grid type: 1D (uniform spacing dx={dx:.6e})")
         else:
-            cell_volume = 1.0
-            print(f"Grid type: 1D (no spacing info, using cell_volume=1)")
+            cell_volume = DEFAULT_CELL_VOLUME
+            print(f"Grid type: 1D (no spacing info, using cell_volume={DEFAULT_CELL_VOLUME})")
     elif x_dim and y_dim:
         # 2D case: (t, y, x)
         dx = 1.0
@@ -311,8 +340,8 @@ def error(path1, path2, time_index=None, norm_error='2'):
         print(f"Grid type: 2D (uniform spacing dx={dx:.6e}, dy={dy:.6e})")
     else:
         # Fallback: no spatial dimensions detected
-        cell_volume = 1.0
-        print(f"Grid type: Unknown (using cell_volume=1)")
+        cell_volume = DEFAULT_CELL_VOLUME
+        print(f"Grid type: Unknown (using cell_volume={DEFAULT_CELL_VOLUME})")
     
     for var_name in sorted(common_vars):
         var1 = ds1[var_name]
@@ -371,6 +400,6 @@ def error(path1, path2, time_index=None, norm_error='2'):
             
             print(f"  Error (L2 norm): {err:.6e}")
     
-    print("\n" + "=" * 80)
+    print("\n" + SEPARATOR_CHAR * SEPARATOR_LENGTH)
     ds1.close()
     ds2.close()
