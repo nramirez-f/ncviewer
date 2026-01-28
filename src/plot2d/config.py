@@ -34,7 +34,7 @@ CONFIG = {
     'levels': {
         'min': 10,
         'step': 10,
-        'default': 200,
+        'default': 50,
     },
     
     # Widget ranges and defaults - Angle
@@ -97,7 +97,7 @@ CONFIG = {
     
     # Default checkbox values
     'checkboxes': {
-        'time_dependent_colorbar': False,
+        'time_dependent_colorbar': True,
         'show_profile': True,
         'show_grid': True,
     },

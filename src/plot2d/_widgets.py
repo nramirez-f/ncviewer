@@ -33,7 +33,7 @@ def create_widgets(ds, x_coords, y_coords):
     # Calculate maximum levels (square root of total points)
     max_levels = int((ds.sizes['x'] * ds.sizes['y']) ** 0.5)
     
-    # ========== GLOBAL CONTROLS ==========
+    # ========== SIMULATION  CONTROLS ==========
     
     variable_selector = pn.widgets.Select(
         name='Variable',
@@ -63,6 +63,8 @@ def create_widgets(ds, x_coords, y_coords):
         step=(y_max - y_min) / 100,
         value=y_center
     )
+
+    # ========== CONTOURF CONTROLS ==========
     
     cmap_selector = pn.widgets.Select(
         name='Colormap',
