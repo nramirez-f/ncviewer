@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from .config import CONFIG
 
 
-def create_widgets(ds, x_coords, y_coords):
+def create_widgets_2d(ds, x_coords, y_coords):
     """
     Create all Panel widgets for interactive control.
     

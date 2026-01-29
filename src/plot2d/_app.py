@@ -8,8 +8,8 @@ import hvplot.xarray
 import holoviews as hv
 from .. import _utils
 from .config import CONFIG
-from ._widgets import create_widgets
-from ._plotter import create_plot, create_timeseries_plot
+from ._widgets import create_widgets_2d
+from ._plotter import create_timeseries_plot
 
 
 def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
@@ -45,7 +45,7 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
     
     # Validate required dimensions exist
     for dim in [time_dim, x_dim, y_dim]:
-        if not _utils.check_dimension(ds, dim):
+        if not dim in ds.dims:
             available = ", ".join(list(ds.dims)[:5])
             if len(ds.dims) > 5:
                 available += f", ... ({len(ds.dims)} total)"
@@ -68,7 +68,7 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
     domain_size = np.sqrt((x_max - x_min)**2 + (y_max - y_min)**2)
     
     # Create widgets
-    widgets = create_widgets(ds, x_coords, y_coords)
+    widgets = create_widgets_2d(ds, x_coords, y_coords)
     
     # Unpack widgets for easier access
     w_global = widgets['global']
@@ -78,12 +78,14 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
     # ========== CREATE REACTIVE PLOTS ==========
     
     # Main contourf plot (without profile to avoid recreation)
-    from ._plotter import create_contourf_only, create_profile_only
+    from ._plotter import contourf, create_profile_only
     
     contourf_pane = pn.panel(
         pn.bind(
-            create_contourf_only,
+            contourf,
             ds=ds,
+            x_dim=x_dim,
+            y_dim=y_dim,
             var=w_global['variable'].param.value,
             cmap=w_global['cmap'].param.value,
             scale=w_global['scale'].param.value_throttled,
@@ -99,7 +101,7 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
             domain_size=domain_size,
             show_line=w_global['show_crosssection'].param.value
         ),
-        sizing_mode='stretch_width'
+        #sizing_mode='stretch_width'
     )
     
     # Separate profile pane
@@ -227,11 +229,6 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
         main=[main_layout],
     )
     
-    # Random port between configured min/max
-    port = random.randint(CONFIG['server']['port_min'], CONFIG['server']['port_max'])
-    
-    print(f'\n✓ Starting Panel server at http://localhost:{port}')
+    print(f'\nStarting Panel server...')
     print('Press Ctrl+C to stop\n')
-    
-    # Show the template
-    template.show(port=port)
+    template.show()

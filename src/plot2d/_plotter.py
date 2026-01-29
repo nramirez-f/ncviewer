@@ -110,25 +110,7 @@ def extract_timeseries(ds, var, x_pos, y_pos, x_coords, y_coords):
     return time_values, timeseries
 
 
-def create_plot(ds, var, cmap, scale, levels, independent_scale, show_crosssection, 
-                time_idx, angle, x_inicio, y_inicio, npoints_percent, profile_scale,
-                x_coords, y_coords, domain_size,
-                profile_color, profile_linestyle, profile_linewidth, 
-                profile_marker, profile_marker_size):
-    """
-    Create the main contourf plot with optional cross-section line and profile.
-    [DEPRECATED - Use create_contourf_only and create_profile_only instead]
-    
-    Returns
-    -------
-    pn.Column
-        Panel column containing the contourf plot and optional profile
-    """
-    # This function is kept for backward compatibility but not used in the app
-    pass
-
-
-def create_contourf_only(ds, var, cmap, scale, levels, independent_scale,
+def contourf(ds, x_dim, y_dim, var, cmap, scale, levels, independent_scale,
                         time_idx, angle, x_inicio, y_inicio, npoints_percent,
                         x_coords, y_coords, domain_size, show_line=True):
     """
@@ -139,8 +121,8 @@ def create_contourf_only(ds, var, cmap, scale, levels, independent_scale,
     hv.Layout
         HoloViews plot object
     """
-    nx = ds.sizes['x']
-    ny = ds.sizes['y']
+    nx = ds.sizes[x_dim]
+    ny = ds.sizes[y_dim]
     aspect_ratio = ny / nx
     
     base_width = CONFIG['plot']['base_width']
@@ -152,8 +134,8 @@ def create_contourf_only(ds, var, cmap, scale, levels, independent_scale,
     
     # Build base kwargs for contourf
     plot_kwargs = {
-        'x': 'x',
-        'y': 'y',
+        'x': x_dim,
+        'y': y_dim,
         'cmap': cmap,
         'width': width,
         'height': height,
@@ -180,7 +162,7 @@ def create_contourf_only(ds, var, cmap, scale, levels, independent_scale,
     
     # Add cut line
     angle_rad = np.deg2rad(angle)
-    min_dim = min(ds.sizes['x'], ds.sizes['y'])
+    min_dim = min(ds.sizes[x_dim], ds.sizes[y_dim])
     npoints = int(min_dim * npoints_percent / 100)
     
     # Calculate cross-section to get line coordinates
@@ -191,8 +173,8 @@ def create_contourf_only(ds, var, cmap, scale, levels, independent_scale,
     if len(x_line) > 0:
         line_data = hv.Curve(
             (x_line, y_line),
-            kdims=['x'],
-            vdims=['y']
+            kdims=[x_dim],
+            vdims=[y_dim]
         ).opts(
             color=CONFIG['cutline']['color'],
             line_width=CONFIG['cutline']['width'],
