@@ -91,6 +91,17 @@ COMMANDS = {
             (["--y-dim"], {"default": "y", "help": "Name of Y spatial dimension (default: y)"}),
         ],
     },
+    "ncplot1d": {
+        "description": "Launch interactive 1D plotting server",
+        "args": [
+            ("file", {"help": "Path to NetCDF file"}),
+        ],
+        "optional_args": [
+            (["--time-dim"], {"default": "time", "help": "Name of time dimension (default: time)"}),
+            (["--x-dim"], {"default": "x", "help": "Name of X spatial dimension (default: x)"}),
+            (["--y-dim"], {"default": "y", "help": "Name of Y spatial dimension (default: y)"}),
+        ],
+    },
 }
 
 def _create_parser(prog, config):
@@ -200,8 +211,8 @@ def ncsnap1d():
     args = parser.parse_args()
     
     try:
-        from . import _p1d
-        _p1d.plot1d(args.file, args.vars, args.time, args.output, args.hvplot)
+        from . import _snap1d
+        _snap1d.plot1d(args.file, args.vars, args.time, args.output, args.hvplot)
         return 0
     except FileNotFoundError as e:
         print(f"✗ Error: {e}", file=sys.stderr)
@@ -275,6 +286,28 @@ def ncplot2d():
     except Exception as e:
         print(f"✗ Unexpected error: {e}", file=sys.stderr)
         return 1
+    
+def ncplot1d():
+    """
+    Entry point for ncplot1d command - Launch interactive 1D plotting server
+    """
+    parser = _create_parser("ncplot1d", COMMANDS["ncplot1d"])
+    args = parser.parse_args()
+    
+    try:
+        from .plot1d import launch_server
+        launch_server(
+            input_file=args.file,
+            time_dim=args.time_dim,
+            x_dim=args.x_dim
+        )
+        return 0
+    except FileNotFoundError as e:
+        print(f"✗ Error: {e}", file=sys.stderr)
+        return 2
+    except Exception as e:
+        print(f"✗ Unexpected error: {e}", file=sys.stderr)
+        return 1
 
 
 def main(argv=None):
@@ -291,10 +324,10 @@ def main(argv=None):
 
     if not args or not getattr(args, "cmd", None):
         print(80*"═")
-        print(f"NetCDF Viewer v{__version__}".center(80))
+        print(f"NetCDF Viewer (version {__version__})".center(80))
         print(80*"═")
         print()
-        print("Quick NetCDF file exploration tool inspired by pangeo")
+        print("Quick NetCDF file exploration tool")
         print()
         print("Run 'ncviewer commands' to list all available commands.")
         return 0

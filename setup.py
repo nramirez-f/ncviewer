@@ -26,6 +26,7 @@ setup(
             "ncsnap1d = src.cli:ncsnap1d",
             "ncmov2d = src.cli:ncmov2d",
             "ncplot2d = src.cli:ncplot2d",
+            "ncplot1d = src.cli:ncplot1d",
         ],
     },
     include_package_data=True,

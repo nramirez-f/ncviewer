@@ -1,0 +1,2 @@
+
+DEFAULT_FPS = 15
