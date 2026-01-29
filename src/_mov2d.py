@@ -100,7 +100,7 @@ def create_animation(
         sys.exit(1)
     
     # Validate variable exists
-    if not _utils.check_variable(ds, variable):
+    if not variable in ds.data_vars:
         available = ", ".join(list(ds.data_vars)[:5])
         if len(ds.data_vars) > 5:
             available += f", ... ({len(ds.data_vars)} total)"
@@ -118,7 +118,7 @@ def create_animation(
     
     # Validate dimensions exist
     for dim in [time_dim, x_dim, y_dim]:
-        if not _utils.check_dimension(ds, dim):
+        if not dim in ds.dims:
             available = ", ".join(list(ds.dims)[:5])
             if len(ds.dims) > 5:
                 available += f", ... ({len(ds.dims)} total)"
