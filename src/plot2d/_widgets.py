@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from .config import CONFIG
 
 
-def create_widgets_2d(ds, x_coords, y_coords):
+def create_widgets_2d(ds, time_dim, x_coords, y_coords):
     """
     Create all Panel widgets for interactive control.
     
@@ -24,14 +24,12 @@ def create_widgets_2d(ds, x_coords, y_coords):
         Dictionary containing all widget objects organized by category
     """
     
-    # Calculate domain properties
+    # Domain Properties
     x_min, x_max = float(x_coords.min()), float(x_coords.max())
     y_min, y_max = float(y_coords.min()), float(y_coords.max())
     x_center = (x_min + x_max) / 2
     y_center = (y_min + y_max) / 2
     
-    # Calculate maximum levels (square root of total points)
-    max_levels = int((ds.sizes['x'] * ds.sizes['y']) ** 0.5)
     
     # ========== SIMULATION  CONTROLS ==========
     
@@ -41,12 +39,20 @@ def create_widgets_2d(ds, x_coords, y_coords):
         value=list(ds.data_vars.keys())[0]
     )
     
-    time_selector = pn.widgets.IntSlider(
-        name='time',
+    time_player = pn.widgets.Player(
+        name=f'Play (índice: 0)',
         start=0,
-        end=len(ds.time) - 1,
-        value=0
+        end=len(ds[time_dim]) - 1,
+        value=0,
+        step=1,
+        loop_policy='once',
+        sizing_mode='stretch_width'
     )
+
+    # Actualiza el nombre del widget dinámicamente con el valor actual
+    def update_player_name(value):
+        time_player.name = f'Play (índice: {value})'
+    time_player.param.watch(lambda event: update_player_name(event.new), 'value')
 
     x_inicio_slider = pn.widgets.FloatSlider(
         name='x0',
@@ -83,9 +89,9 @@ def create_widgets_2d(ds, x_coords, y_coords):
     levels_selector = pn.widgets.IntSlider(
         name='Levels',
         start=CONFIG['levels']['min'],
-        end=max_levels,
+        end=CONFIG['levels']['max'],
         step=CONFIG['levels']['step'],
-        value=min(CONFIG['levels']['default'], max_levels)
+        value=CONFIG['levels']['default']
     )
     
     independent_scale_checkbox = pn.widgets.Checkbox(
@@ -209,9 +215,11 @@ def create_widgets_2d(ds, x_coords, y_coords):
     
     # Return organized dictionary
     return {
-        'global': {
+        'simulation': {
             'variable': variable_selector,
-            'time': time_selector,
+            'time': time_player,
+        },
+        'contourf': {
             'cmap': cmap_selector,
             'scale': scale_selector,
             'levels': levels_selector,

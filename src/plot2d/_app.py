@@ -7,7 +7,6 @@ import panel as pn
 import hvplot.xarray
 import holoviews as hv
 from .. import _utils
-from .config import CONFIG
 from ._widgets import create_widgets_2d
 from ._plotter import create_timeseries_plot
 
@@ -60,21 +59,14 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
     x_coords = ds[x_dim].values
     y_coords = ds[y_dim].values
     
-    # Calculate domain properties
+    # Domain Properties
     x_min, x_max = float(x_coords.min()), float(x_coords.max())
     y_min, y_max = float(y_coords.min()), float(y_coords.max())
-    x_center = (x_min + x_max) / 2
-    y_center = (y_min + y_max) / 2
     domain_size = np.sqrt((x_max - x_min)**2 + (y_max - y_min)**2)
     
     # Create widgets
-    widgets = create_widgets_2d(ds, x_coords, y_coords)
-    
-    # Unpack widgets for easier access
-    w_global = widgets['global']
-    w_profile = widgets['profile']
-    w_ts = widgets['timeseries']
-    
+    widgets = create_widgets_2d(ds, time_dim, x_coords, y_coords)
+        
     # ========== CREATE REACTIVE PLOTS ==========
     
     # Main contourf plot (without profile to avoid recreation)
@@ -86,20 +78,20 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
             ds=ds,
             x_dim=x_dim,
             y_dim=y_dim,
-            var=w_global['variable'].param.value,
-            cmap=w_global['cmap'].param.value,
-            scale=w_global['scale'].param.value_throttled,
-            levels=w_global['levels'].param.value_throttled,
-            independent_scale=w_global['independent_scale'].param.value,
-            time_idx=w_global['time'].param.value_throttled,
-            angle=w_profile['angle'].param.value_throttled,
-            x_inicio=w_profile['x_inicio'].param.value_throttled,
-            y_inicio=w_profile['y_inicio'].param.value_throttled,
-            npoints_percent=w_profile['npoints'].param.value_throttled,
+            var=widgets['simulation']['variable'].param.value,
+            cmap=widgets['contourf']['cmap'].param.value,
+            scale=widgets['contourf']['scale'].param.value_throttled,
+            levels=widgets['contourf']['levels'].param.value_throttled,
+            independent_scale=widgets['contourf']['independent_scale'].param.value,
+            time_idx=widgets['simulation']['time'].param.value_throttled,
+            angle=widgets['profile']['angle'].param.value_throttled,
+            x_inicio=widgets['profile']['x_inicio'].param.value_throttled,
+            y_inicio=widgets['profile']['y_inicio'].param.value_throttled,
+            npoints_percent=widgets['profile']['npoints'].param.value_throttled,
             x_coords=x_coords,
             y_coords=y_coords,
             domain_size=domain_size,
-            show_line=w_global['show_crosssection'].param.value
+            show_line=widgets['contourf']['show_crosssection'].param.value
         ),
         #sizing_mode='stretch_width'
     )
@@ -109,22 +101,22 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
         pn.bind(
             create_profile_only,
             ds=ds,
-            var=w_global['variable'].param.value,
-            time_idx=w_global['time'].param.value_throttled,
-            angle=w_profile['angle'].param.value_throttled,
-            x_inicio=w_profile['x_inicio'].param.value_throttled,
-            y_inicio=w_profile['y_inicio'].param.value_throttled,
-            npoints_percent=w_profile['npoints'].param.value_throttled,
-            profile_scale=w_profile['scale'].param.value_throttled,
+            var=widgets['simulation']['variable'].param.value,
+            time_idx=widgets['simulation']['time'].param.value_throttled,
+            angle=widgets['profile']['angle'].param.value_throttled,
+            x_inicio=widgets['profile']['x_inicio'].param.value_throttled,
+            y_inicio=widgets['profile']['y_inicio'].param.value_throttled,
+            npoints_percent=widgets['profile']['npoints'].param.value_throttled,
+            profile_scale=widgets['profile']['scale'].param.value_throttled,
             x_coords=x_coords,
             y_coords=y_coords,
             domain_size=domain_size,
-            profile_color=w_profile['color'].param.value,
-            profile_linestyle=w_profile['linestyle'].param.value,
-            profile_linewidth=w_profile['linewidth'].param.value_throttled,
-            profile_marker=w_profile['marker'].param.value,
-            profile_marker_size=w_profile['marker_size'].param.value_throttled,
-            show_profile=w_global['show_crosssection'].param.value
+            profile_color=widgets['profile']['color'].param.value,
+            profile_linestyle=widgets['profile']['linestyle'].param.value,
+            profile_linewidth=widgets['profile']['linewidth'].param.value_throttled,
+            profile_marker=widgets['profile']['marker'].param.value,
+            profile_marker_size=widgets['profile']['marker_size'].param.value_throttled,
+            show_profile=widgets['contourf']['show_crosssection'].param.value
         ),
         sizing_mode='stretch_width'
     )
@@ -134,16 +126,16 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
         pn.bind(
             create_timeseries_plot,
             ds=ds,
-            var=w_global['variable'].param.value,
-            x_pos=w_profile['x_inicio'].param.value_throttled,
-            y_pos=w_profile['y_inicio'].param.value_throttled,
-            ts_scale=w_ts['scale'].param.value_throttled,
-            ts_color=w_ts['color'].param.value,
-            ts_linestyle=w_ts['linestyle'].param.value,
-            ts_linewidth=w_ts['linewidth'].param.value_throttled,
-            ts_marker=w_ts['marker'].param.value,
-            ts_marker_size=w_ts['marker_size'].param.value_throttled,
-            show_grid=w_ts['show_grid'].param.value,
+            var=widgets['simulation']['variable'].param.value,
+            x_pos=widgets['profile']['x_inicio'].param.value_throttled,
+            y_pos=widgets['profile']['y_inicio'].param.value_throttled,
+            ts_scale=widgets['timeseries']['scale'].param.value_throttled,
+            ts_color=widgets['timeseries']['color'].param.value,
+            ts_linestyle=widgets['timeseries']['linestyle'].param.value,
+            ts_linewidth=widgets['timeseries']['linewidth'].param.value_throttled,
+            ts_marker=widgets['timeseries']['marker'].param.value,
+            ts_marker_size=widgets['timeseries']['marker_size'].param.value_throttled,
+            show_grid=widgets['timeseries']['show_grid'].param.value,
             x_coords=x_coords,
             y_coords=y_coords
         ),
@@ -153,47 +145,51 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
     # ========== SIDEBAR LAYOUT ==========
     
     netcdf_controls = pn.Column(
-        w_global['variable'],
-        w_global['time'],
+        widgets['simulation']['variable'],
+        widgets['simulation']['time'],
         pn.pane.Markdown('---'),
         pn.pane.Markdown('### Exploration point'),
-        w_profile['x_inicio'],
-        w_profile['y_inicio'],
+        widgets['profile']['x_inicio'],
+        widgets['profile']['y_inicio'],
+        sizing_mode='stretch_width'
     )
-    
+
     contourf_controls = pn.Column(
-        w_global['cmap'],
-        w_global['scale'],
-        w_global['levels'],
-        w_global['independent_scale'],
-        w_global['show_crosssection'],
+        widgets['contourf']['cmap'],
+        widgets['contourf']['scale'],
+        widgets['contourf']['levels'],
+        widgets['contourf']['independent_scale'],
+        widgets['contourf']['show_crosssection'],
+        sizing_mode='stretch_width'
     )
-    
+
     crosssection_controls = pn.Column(
         pn.pane.Markdown('### Cut parameters'),
-        w_profile['angle'],
-        w_profile['npoints'],
+        widgets['profile']['angle'],
+        widgets['profile']['npoints'],
         pn.pane.Markdown('---'),
         pn.pane.Markdown('### Profile style'),
-        w_profile['scale'],
-        w_profile['color'],
-        w_profile['linestyle'],
-        w_profile['linewidth'],
-        w_profile['marker'],
-        w_profile['marker_size']
+        widgets['profile']['scale'],
+        widgets['profile']['color'],
+        widgets['profile']['linestyle'],
+        widgets['profile']['linewidth'],
+        widgets['profile']['marker'],
+        widgets['profile']['marker_size'],
+        sizing_mode='stretch_width'
     )
-    
+
     timeserie_controls = pn.Column(
         pn.pane.Markdown('### Plot style'),
-        w_ts['scale'],
-        w_ts['color'],
-        w_ts['linestyle'],
-        w_ts['linewidth'],
-        w_ts['marker'],
-        w_ts['marker_size'],
-        w_ts['show_grid'],
+        widgets['timeseries']['scale'],
+        widgets['timeseries']['color'],
+        widgets['timeseries']['linestyle'],
+        widgets['timeseries']['linewidth'],
+        widgets['timeseries']['marker'],
+        widgets['timeseries']['marker_size'],
+        widgets['timeseries']['show_grid'],
+        sizing_mode='stretch_width'
     )
-    
+
     sidebar_content = [
         pn.pane.Markdown('## Dataset Info'),
         pn.pane.Markdown(f'**File:** {input_file}'),
@@ -206,19 +202,21 @@ def launch_server(input_file, time_dim='time', x_dim='x', y_dim='y'):
             ('Contourf', contourf_controls),
             ('Profile', crosssection_controls),
             ('Time-Serie', timeserie_controls),
-            active=[0]  # Only first active
+            active=[0],  # Only first active
+            sizing_mode='stretch_width'
         ),
     ]
-    
+
     # ========== MAIN LAYOUT ==========
-    
+
     main_layout = pn.Column(
         pn.pane.Markdown('# Contourf'),
         contourf_pane,
         pn.pane.Markdown('# Profile'),
         profile_pane,
         pn.pane.Markdown('# Time Serie'),
-        timeseries_pane
+        timeseries_pane,
+        sizing_mode='stretch_width'
     )
     
     # ========== CREATE TEMPLATE ==========

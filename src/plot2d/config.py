@@ -2,12 +2,7 @@
 
 # Configuration dictionary with all default values
 CONFIG = {
-    # Server configuration
-    'server': {
-        'port_min': 5000,
-        'port_max': 9999,
-    },
-    
+
     # Dimension names (can be overridden by CLI args)
     'dimensions': {
         'time_dim': 'time',
@@ -32,9 +27,10 @@ CONFIG = {
     
     # Widget ranges and defaults - Levels
     'levels': {
-        'min': 10,
-        'step': 10,
-        'default': 50,
+        'min': 5,
+        'default': 20,
+        'step': 5,
+        'max': 50,
     },
     
     # Widget ranges and defaults - Angle
