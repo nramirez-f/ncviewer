@@ -30,5 +30,6 @@ def line_plot(ds, time_dim, x_dim, time_idx, x_coords, vars_list):
     
     p.x_range.start = np.min(x_coords)
     p.x_range.end = np.max(x_coords)
+    p.title.align = 'center'
 
     return p
