@@ -40,7 +40,7 @@ def create_widgets_2d(ds, time_dim, x_coords, y_coords):
     )
     
     time_player = pn.widgets.Player(
-        name=f'Play (índice: 0)',
+        name=f'{time_dim} index: 0',
         start=0,
         end=len(ds[time_dim]) - 1,
         value=0,
@@ -49,9 +49,8 @@ def create_widgets_2d(ds, time_dim, x_coords, y_coords):
         sizing_mode='stretch_width'
     )
 
-    # Actualiza el nombre del widget dinámicamente con el valor actual
     def update_player_name(value):
-        time_player.name = f'Play (índice: {value})'
+        time_player.name = f'{time_dim} index: {value})'
     time_player.param.watch(lambda event: update_player_name(event.new), 'value')
 
     x_inicio_slider = pn.widgets.FloatSlider(

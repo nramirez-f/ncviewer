@@ -1,6 +1,5 @@
-import panel as pn
 import panel.widgets as widget
-from .config import *
+from .config import FPS
 
 def create_widgets_1d(ds, time_dim, x_coords):
     """
@@ -20,27 +19,37 @@ def create_widgets_1d(ds, time_dim, x_coords):
     dict
         Dictionary containing all widget objects organized by category
     """
-
-    time_player = pn.widgets.Player(
-        name='Play',
+    # ========== Widgets ==========
+    time_player = widget.Player(
+        name=f'iteration 0',
         start=0,
         end=len(ds[time_dim]) - 1,
         value=0,
         step=1,
-        interval=int(1000 / DEFAULT_FPS),
+        interval=int(1000 / FPS),
         loop_policy='once',
         sizing_mode='stretch_width'
     )
-    
-    variable_simulation_selector = widget.MultiChoice(
-        name='Variables',
-        options=list(ds.data_vars.keys()),
-        value=[list(ds.data_vars.keys())[0]]
+
+    variables_simulation_input = widget.TextInput(
+        name='Variables or Expressions (comma-separated)',
+        value=list(ds.data_vars.keys())[0],
+        placeholder='e.g., h, H, h-H...'
     )
     
+
+    # ========== Functions ==========
+
+    def update_time_player_name(value):
+        time_player.name = f'iteration {value}'
+
+    # === Watchers ===
+    
+    time_player.param.watch(lambda event: update_time_player_name(event.new), 'value')
+
     return {
         'simulation': {
             'time_player': time_player,
-            'variable': variable_simulation_selector
+            'variables_input': variables_simulation_input
         }
     }

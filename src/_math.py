@@ -8,7 +8,7 @@ def evaluate_expression(ds, expression):
     
     Args:
         ds: xarray Dataset
-        expression: String containing variable names and operations (e.g., 'h-H', 'temp*2+1')
+        expression: String containing variable names and operations (e.g., 'h-H', 'temp*2+1', or just 'h')
         
     Returns:
         Computed xarray DataArray
@@ -18,6 +18,13 @@ def evaluate_expression(ds, expression):
         SyntaxError: If the expression is invalid
     """
     import re
+    
+    # Strip whitespace
+    expression = expression.strip()
+    
+    # Check if it's a simple variable name (no operators or functions)
+    if expression in ds.data_vars or expression in ds.coords:
+        return ds[expression]
     
     # Extract variable names from the expression (alphanumeric + underscore)
     var_pattern = r'\b[a-zA-Z_][a-zA-Z0-9_]*\b'

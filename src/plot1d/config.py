@@ -1,2 +1,7 @@
 
-DEFAULT_FPS = 15
+FPS = 7
+
+LINE_WIDTH = 2
+
+PLOT_HEIGHT = 400
+

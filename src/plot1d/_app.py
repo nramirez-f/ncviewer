@@ -2,6 +2,7 @@ import panel as pn
 
 import sys
 from src import _utils
+from pathlib import Path
 from ._widgets import *
 
 def launch_server(input_file, time_dim='time', x_dim='x'):
@@ -35,43 +36,46 @@ def launch_server(input_file, time_dim='time', x_dim='x'):
     # Get Widgets
     widgets = create_widgets_1d(ds, time_dim, x_coords)
 
-    # Bindings
+    # ========== Bindings ==========
     from ._plotter import line_plot
+
+    # Line Plot
+    def parse_variables(var_string):
+        """Parse comma-separated variable expressions into a list."""
+        if isinstance(var_string, str):
+            return [v.strip() for v in var_string.split(',') if v.strip()]
+        return var_string
 
     line_plot_pane = pn.bind(
         line_plot,
         ds=ds,
         time_dim=time_dim,
+        x_dim=x_dim,
         time_idx=widgets['simulation']['time_player'],
         x_coords=x_coords,
-        var=widgets['simulation']['variable']
+        vars_list=pn.bind(parse_variables, widgets['simulation']['variables_input'])
     )
 
-    # Layout
-    simulation_controls = pn.Column(
-        widgets['simulation']['time_player'],
-        widgets['simulation']['variable'],
-        sizing_mode='stretch_width'
-    )
-
-    dashboard = pn.Row(
+    # ========== Layout ==========
+    dashboard = pn.Column(
+        pn.Row(widgets['simulation']['variables_input']),
         line_plot_pane,
-        align='center',
-        sizing_mode='scale_both'
+        pn.Row(widgets['simulation']['time_player']),
+        sizing_mode='stretch_both'
     )
+
+    # NcFiles
+    nc = pn.Column(
+        pn.pane.Markdown(f'**path:** {str(Path(input_file).resolve())}'),
+        pn.pane.Markdown(f'**dimensions:** {", ".join([f"{key}({size})" for key, size in dict(ds.sizes).items()])}'),
+        pn.pane.Markdown(f'**variables:** {", ".join(ds.data_vars.keys())}'),
+    )
+
+    ncfiles = pn.Accordion(('nc', nc), active=[0])
        
     sidebar_content = [
-        pn.pane.Markdown('## Dataset Info'),
-        pn.pane.Markdown(f'**File:** {input_file}'),
-        pn.pane.Markdown(f'**Variables:** {", ".join(ds.data_vars.keys())}'),
-        pn.pane.Markdown(f'**Dimensions:**'),
-        *[pn.pane.Markdown(f'- {key}: {size}') for key, size in dict(ds.sizes).items()],
-        pn.layout.Divider(),
-        pn.pane.Markdown('## Controls'),
-        pn.Accordion(
-            ('Simulation', simulation_controls),
-            active=[0]
-        ),
+        pn.pane.Markdown('# NetCDF Files'),
+        ncfiles,
     ]
 
     template = pn.template.BootstrapTemplate(

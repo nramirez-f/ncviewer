@@ -1,54 +1,34 @@
-import plotly.graph_objects as go
+from bokeh.plotting import figure
+from .config import *
+from src._math import evaluate_expression
 import numpy as np
 
-def line_plot(ds, time_dim, time_idx, x_coords, var):
-    """
-    Create a 1D line plot using Plotly.
 
-    Args:
-        ds: xarray.Dataset
-        time_dim: Name of the time dimension
-        time_idx: Index of the time step to plot
-        x_coords: Coordinates for the X axis
-        var: Variable name to plot
-
-    Returns:
-        plotly.graph_objects.Figure
-    """
-    all_values = []
+def line_plot(ds, time_dim, x_dim, time_idx, x_coords, vars_list):
     
-    fig = go.Figure()
-    for v in var:
-        values = ds[v].isel({time_dim: time_idx}).values
-        fig.add_trace(go.Scatter(
-            x=x_coords,
-            y=values,
-            mode='lines',
-            name=v
-        ))
-        all_values.append(ds[v].values)
 
-    # Calculate global y-axis limits across all time steps for the selected variable(s)
-    if all_values:
-        all_values = np.concatenate(all_values)
-        y_min = np.min(all_values)
-        y_max = np.max(all_values)
-    else:
-        y_min = 0
-        y_max = 1
-
-    fig.update_layout(
-        showlegend=True,
-        title={
-            'text': f"{time_dim} = {ds[time_dim].values[time_idx]:.3f} (iteration: {time_idx})",
-            'x': 0.5,
-            'xanchor': 'center'
-        },
-        xaxis={
-            'range': [np.min(x_coords), np.max(x_coords)]
-        },
-        yaxis={
-            'range': [y_min, y_max]
-        }
+    p = figure(
+        title=f"{time_dim} = {ds[time_dim].values[time_idx]:.3f}",
+        x_axis_label=x_dim,
+        y_axis_label='value',
+        sizing_mode='stretch_width',
+        height=PLOT_HEIGHT
     )
-    return fig
+
+    for var in vars_list:
+
+        var_evaluation = evaluate_expression(ds, var)
+
+        y_values = var_evaluation.isel({time_dim: time_idx}).values
+
+        p.line(
+            x_coords,
+            y_values,
+            legend_label=var,
+            line_width=LINE_WIDTH,
+        )
+    
+    p.x_range.start = np.min(x_coords)
+    p.x_range.end = np.max(x_coords)
+
+    return p
