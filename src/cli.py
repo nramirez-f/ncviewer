@@ -222,7 +222,7 @@ def ncorder():
     args = parser.parse_args()
     
     try:
-        from . import _scheme_order
+        from . import _table_order
         import sys
         import os
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -231,7 +231,7 @@ def ncorder():
         # Use provided norm or default from config
         norm = args.norm if args.norm else DEFAULT_ERROR_NORM
         
-        _scheme_order.order_table(
+        _table_order.compute_table(
             sample_files=args.samples,
             ref_file=args.ref,
             variables=args.vars,

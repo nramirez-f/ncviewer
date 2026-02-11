@@ -12,7 +12,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import *
 
-def order_table(sample_files, ref_file, variables=None, time_index=None, norm_error=DEFAULT_ERROR_NORM):
+def compute_table(sample_files, ref_file, variables=None, time_index=None, norm_error=DEFAULT_ERROR_NORM):
     """
     Compute convergence order table for multiple NetCDF files.
     
@@ -307,18 +307,18 @@ def order_table(sample_files, ref_file, variables=None, time_index=None, norm_er
         orders[var].insert(0, "")
     
     # Print results table
-    print(f"\nOrder table in {norm_error} norm:")
+    print(f"\nOrder table in norm {norm_error} at {time_dim}={ds_ref[time_dim].values[time_index]:.3e}:")
     print(SEPARATOR_CHAR * SEPARATOR_LENGTH)
     
     # Build header
     if grid_type == '1D':
-        header = f"{'npx':>8}"
+        header = f"{'cells x':>8}"
     else:
-        header = f"{'npy':>8} {'npx':>8}"
+        header = f"{'cells y':>8} {'cells x':>8}"
     
     for var in ref_data.keys():
         var_short = var[:10] if len(var) <= 10 else var[:9] + "…"
-        header += f" {('err('+var_short+')'):>15} {('p('+var_short+')'):>8}"
+        header += f" {'error '+var_short+'':>15} {'order '+var_short+'':>8}"
     
     print(header)
     print("-" * len(header))
