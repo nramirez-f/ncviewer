@@ -51,6 +51,18 @@ COMMANDS = {
             (["-t", "--time_index"], {"type": int, "help": "Specific time index to compare"}),
         ],
     },
+    "ncorder": {
+        "description": "Compute convergence order table for multiple NetCDF files",
+        "args": [
+            ("samples", {"nargs": "+", "help": "Paths to sample NetCDF files (coarse grids)"}),
+        ],
+        "optional_args": [
+            (["--ref"], {"required": True, "help": "Path to reference NetCDF file (finest grid)"}),
+            (["-v", "--vars"], {"nargs": "+", "help": "Variable names or expressions to analyze (default: all)"}),
+            (["-t", "--time_index"], {"type": int, "help": "Time index to analyze (default: last)"}),
+            (["-n", "--norm"], {"choices": ["1", "2", "inf"], "help": "Error norm (default: from config)"}),
+        ],
+    },
     "ncmov2d": {
         "description": "Create 2D animations from NetCDF files (MP4/GIF)",
         "args": [
@@ -196,6 +208,36 @@ def ncerr():
     try:
         from . import _inspect
         _inspect.error(args.file1, args.file2, time_index=args.time_index)
+        return 0
+    except FileNotFoundError as e:
+        print(f"✗ Error: {e}", file=sys.stderr)
+        return 2
+    except Exception as e:
+        print(f"✗ Unexpected error: {e}", file=sys.stderr)
+        return 1
+
+def ncorder():
+    """Entry point for ncorder command"""
+    parser = _create_parser("ncorder", COMMANDS["ncorder"])
+    args = parser.parse_args()
+    
+    try:
+        from . import _scheme_order
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from config import DEFAULT_ERROR_NORM
+        
+        # Use provided norm or default from config
+        norm = args.norm if args.norm else DEFAULT_ERROR_NORM
+        
+        _scheme_order.order_table(
+            sample_files=args.samples,
+            ref_file=args.ref,
+            variables=args.vars,
+            time_index=args.time_index,
+            norm_error=norm
+        )
         return 0
     except FileNotFoundError as e:
         print(f"✗ Error: {e}", file=sys.stderr)

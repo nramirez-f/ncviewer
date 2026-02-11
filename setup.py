@@ -23,6 +23,7 @@ setup(
             "ncvar = src.cli:ncvar",
             "ncsum = src.cli:ncsum",
             "ncerr = src.cli:ncerr",
+            "ncorder = src.cli:ncorder",
             "ncsnap1d = src.cli:ncsnap1d",
             "ncmov2d = src.cli:ncmov2d",
             "ncplot2d = src.cli:ncplot2d",
